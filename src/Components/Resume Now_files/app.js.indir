@@ -1,0 +1,872 @@
+window.ECOM = window.ECOM || {};
+var ECOM = window.ECOM;
+ECOM.environment = window.location.host.split('.')[0];
+ECOM.environment = ECOM.environment.includes('-') ? ECOM.environment.split('-')[0] : ECOM.environment;
+ECOM.Paths = {};
+ECOM.Paths.BaseApiUrl = window.location.origin + ECOM.CountryCultureSlugPrefix + '/ecom/api/v1/';
+ECOM.Paths.BaseEBApiUrl = '';
+ECOM.Paths.BasePath = ECOM.CountryCultureSlugPrefix + '/payment';
+ECOM.TimeoutPageURL = 'membership/timeout.aspx';
+ECOM.jobsearchWidgetSettings = {};
+ECOM.UserConsent = true;
+ECOM.LocalizedText = {};
+ECOM.LocalizedURL = {};
+ECOM.RedirectionURL = {};
+ECOM.Config = {};
+ECOM.Links = {};
+ECOM.IsINTL = false;
+ECOM.pseudoLocalResourcePathPath = window.location.origin + '/blobcontent/pwb/locales/common/';
+ECOM.ContentPath = location.origin + ECOM.CountryCultureSlugPrefix + '/payment/contents/';
+ECOM.DomainForAssets = location.origin;
+// Planning to remove isMobileDevice, as deviceType makes more extensible and uniform to use
+ECOM.isMobileDevice = false;
+ECOM.deviceType = 'Desktop';
+ECOM.gaKey = '';
+ECOM.ga4Key = '';
+ECOM.IsPersonalizationEnabled = true;
+ECOM.isPseudoLocalizationFileProvided = false;
+
+ECOM.loadStyleSheet = function (src) {
+    if (document.createStyleSheet) document.createStyleSheet(src);
+    else {
+        var stylesheet = document.createElement('link');
+        stylesheet.href = src;
+        stylesheet.rel = 'stylesheet';
+        stylesheet.type = 'text/css';
+        document.head.appendChild(stylesheet);
+    }
+};
+
+ECOM.setupAndFireGAPageView = function (gaKey) {
+    if (gaKey && gaKey.length > 0) {
+        window.dataLayer = window.dataLayer || [];
+        if (!window.ECOM.Config.IsGa4Configured) {
+            gtag('js', new Date());
+            gtag('config', gaKey);
+            window.ga = window.ga ||
+        function () { (window.ga.q = window.ga.q || []).push(arguments); }; window.ga.l = +new Date;
+            window.ga('create', gaKey, 'auto');
+            window.ga('send', 'pageview');
+        }
+        else {
+            //skip gtag call in case of ga4
+            window.ga = window.ga ||
+        function () { (window.ga.q = window.ga.q || []).push(arguments); }; window.ga.l = +new Date;
+            window.ga('create', window.ECOM.gaKey, 'auto');
+            window.ga('send', 'pageview');
+        }
+    }
+};
+
+ECOM.setupAndFireGA4PageView = function (ga4Key) {
+    if (ga4Key && ga4Key.length > 0) {
+        window.dataLayer = [];
+        gtag('js', new Date());
+        gtag('config', ga4Key);
+        window.ga = window.ga ||
+      function () { (window.ga.q = window.ga.q || []).push(arguments); }; window.ga.l = +new Date;
+        window.ga('create', ga4Key, 'auto');
+        window.ga('send', 'pageview');
+    }
+};
+
+ECOM.LoadThirdPartyScripts = function () {
+    if (ECOM.environment == 'local') {
+        ECOM.LoadJsFile('https://' + window.location.hostname.replace('local-embeddedecom', 
+            'qa') + ECOM.Config.CommonSegmentJSURL);
+    }
+    else {
+        ECOM.LoadJsFile(ECOM.DomainForAssets + ECOM.Config.CommonSegmentJSURL);
+    }
+    loadGAScriptsAndFirePageViewEvents();
+};
+
+ECOM.LoadConsentBasedScripts = function () {
+
+    if (ECOM.environment == 'local') {
+        ECOM.LoadJsFile('https://' + window.location.hostname.replace('local-embeddedecom', 'qa') + 
+        ECOM.Config.CommonSegmentJSURL);
+    }
+    else {
+        ECOM.LoadJsFile(ECOM.DomainForAssets + ECOM.Config.CommonSegmentJSURL);
+    }
+    var consent = JSON.parse(localStorage.getItem('COOKIE_CONSENT')) || JSON.parse(ECOM.readCookie('COOKIE_CONSENT'));
+    if (consent) {
+        if (consent.consent && consent.consent.analytics) {
+            loadGAScriptsAndFirePageViewEvents();
+        }
+    }
+    else {
+        loadGAScriptsAndFirePageViewEvents();
+    }
+};
+
+function loadExperimentSPAJs() {
+    if (ECOM.Config != undefined && ECOM.Config.experimentJsURL != undefined) {
+        ECOM.LoadJsFile(ECOM.DomainForAssets + ECOM.Config.experimentJsURL, false);
+    }
+}
+
+function setIntegrationsForCommonSegment() {
+    var integrations = {};
+    integrations['Iterable'] = true;
+    integrations['FullStory'] = true;
+
+    window.segment = getCommonSegmentProps(integrations);
+}
+
+function getCommonSegmentProps(integrations) {
+    var segmentProps = {};
+    segmentProps['Integrations'] = integrations;
+    var commonProps = {};
+    commonProps['Platform'] = 'Web';
+    commonProps['Login Status'] = 'TRUE';
+    segmentProps['CommonProps'] = commonProps;
+    return segmentProps;
+}
+
+ECOM.createCookie = function (name, value, hours, domain, isSecured) {
+    if (isSecured == undefined) isSecured = true;
+    var expires = '';
+    if (hours) {
+        var date = new Date();
+        date.setTime(date.getTime() + (hours * 60 * 60 * 1000));
+        expires = ' ; expires=' + date.toGMTString();
+    } else
+        expires = '';
+    domain = domain ? domain : window.location.host.substr(window.location.host.indexOf('.'));
+    document.cookie = name + '=' + value + expires + '; path=/;domain=' + domain + (isSecured ? '; secure' : '');
+};
+
+ECOM.readCookie = function (name) {
+    var nameEQ = name + '=';
+    var ca = document.cookie.split(';');
+    for (var i = 0; i < ca.length; i++) {
+        var c = ca[i];
+        while (c.charAt(0) == ' ') c = c.substring(1, c.length);
+        if (c.indexOf(nameEQ) == 0) return c.substring(nameEQ.length, c.length);
+    }
+    return null;
+};
+
+ECOM.GetQueryString = function (field) {
+    var href = window.location.href;
+    var reg = new RegExp('[?&]' + field + '=([^&#]*)', 'i');
+    var string = reg.exec(href);
+    return string ? decodeURIComponent(string[1]) : null;
+};
+
+function currentBuildVersion() {
+    var developerScript = document.querySelector('script[src*="scripts/app"]');
+    if (developerScript && developerScript.src) {
+        var fileName = developerScript.src.split('scripts/')[1];
+        var lastIndex = fileName.lastIndexOf('.js?v=');
+        if (lastIndex > 1)
+            return fileName.substr(lastIndex);
+    }
+    return '.js';
+}
+ECOM.CurrentBuildVersion = currentBuildVersion();
+
+/**** css class according to browser ****/
+var userAgent = navigator.userAgent,
+    isIE = /*@cc_on!@*/ false || !!document.documentMode,
+    isEdge = !isIE && !!window.StyleMedia;
+if (/MSIE/.test(userAgent) || /Trident/.test(userAgent)) {
+    document.documentElement.classList.add('ie');
+    if (/MSIE 10\.0/.test(userAgent)) document.documentElement.classList.add('ie10');
+    if (/rv:11\.0/.test(userAgent)) document.documentElement.classList.add('ie11');
+}
+if (isEdge) {
+    document.documentElement.classList.add('edge');
+}
+
+ECOM.IsChrome = function () {
+    var isChromium = window.chrome;
+    var winNav = window.navigator;
+    var vendorName = winNav.vendor;
+    var isOpera = typeof window.opr !== 'undefined';
+    var isIEedge = winNav.userAgent.indexOf('Edge') > -1;
+    var isIOSChrome = winNav.userAgent.match('CriOS');
+    if (isIOSChrome) {
+        return true;
+    } else if (
+        isChromium !== null &&
+    typeof isChromium !== 'undefined' &&
+    vendorName === 'Google Inc.' &&
+    isOpera === false &&
+    isIEedge === false
+    ) {
+        return true;
+    } else {
+        return false;
+    }
+}();
+
+ECOM.HostName = window.location.hostname.substring(window.location.hostname.indexOf('.') + 1);
+function checkAndSetPseudoLocalization() {
+    var pseudoLocalizeText = false;
+    if (window.ECOM.GetQueryString('pseudolocal') == 1 ||
+    window.ECOM.readCookie('pseudolocal') == 1) {
+        window.ECOM.createCookie('pseudolocal', 1);
+        pseudoLocalizeText = true;
+    }
+    let env = window.ECOM.GetQueryString('env');
+    if (env) {
+        window.ECOM.isPseudoLocalizationFileProvided = true;
+        window.ECOM.createCookie('env', env);
+    }
+    return pseudoLocalizeText;
+}
+
+ECOM.usePseudoLocalization = checkAndSetPseudoLocalization();
+
+function setBLOBPath() {
+    var isAccessedFromLocal = true;
+    switch (ECOM.environment) {
+    case 'qa':
+        ECOM.ContentPath += 'qa/';
+        isAccessedFromLocal = false;
+        break;
+    case 'reg':
+    case 'perf':
+    case 'reg-stg':
+    case 'pen':
+    case 'reg-embeddedecom':
+    case 'perf-embeddedecom':
+        ECOM.ContentPath += 'reg/';
+        isAccessedFromLocal = false;
+        break;
+    case 'loc':
+        ECOM.ContentPath += 'loc/';
+        isAccessedFromLocal = false;
+        break;
+    case 'stg':
+        ECOM.ContentPath += 'stg/';
+        isAccessedFromLocal = false;
+        break;
+    case 'www':
+    case 'app':
+    case 'builder':
+    case 'embeddedecom':
+        ECOM.ContentPath += 'prod/';
+        isAccessedFromLocal = false;
+        break;
+    }
+    if (isAccessedFromLocal) {
+        ECOM.ContentPath = ECOM.CountryCultureSlugPrefix + '/payment/contents/';
+    }
+    if (ECOM.environment === 'local') {
+        if (window.ECOM.usePseudoLocalization) {
+            window.ECOM.pseudoLocalResourcePathPath =
+        'https://qa.' + window.ECOM.HostName + '/blobcontent/pwb/locales/common/';
+        }
+        if (window.called_from_widget) {
+            window.ECOM.ContentPath = 'https://qa.' + window.ECOM.HostName + ECOM.ContentPath + 'qa/';
+        }
+    }
+}
+setBLOBPath();
+ECOM.LoadResourceJson = function () {
+    if (!ECOM.IsLitePortalFlow) {
+        ECOM.LoadCommonResourceJSON();
+        ECOM.LoadPortalSpecificResourceJSON(setLocalizedData);
+    }
+    else {
+        let configUrl = ECOM.ContentPath + 'lclite/config/' + ECOM.LiteFlowCountrySlug +
+      '/config.base' + ECOM.CurrentBuildVersion.replace('.js', '.json');
+        loadJsonFile(configUrl, setLocalizedData, false);
+    }
+};
+
+ECOM.GetConfigName = function (environment) {
+    var configName = 'dev';
+    switch (environment) {
+    case 'reg':
+    case 'perf':
+    case 'pen':
+    case 'loc':
+        configName = 'reg';
+        break;
+    case 'reg-stg':
+        configName = 'reg-stg';
+        break;
+    case 'stg':
+        configName = 'stg';
+        break;
+    case 'www':
+    case 'app':
+    case 'builder':
+        configName = 'prod';
+        break;
+    }
+    return configName;
+};
+ECOM.LoadEcomJson = function () {
+    var configUrl = ECOM.ContentPath;
+    if (ECOM.IsLitePortalFlow) {
+        configUrl += 'lclite/config/' + ECOM.LiteFlowCountrySlug;
+    }
+    else {
+        configUrl += ECOM.HostName;
+    }
+    configUrl += '/' + ECOM.GetConfigName(ECOM.environment) +
+    ECOM.CurrentBuildVersion.replace('.js', '.json');
+    // AJAX using jQuery if available
+    loadJsonFile(configUrl, setECOMData, false);
+};
+
+if (!ECOM.LoadJsFile) {
+    ECOM.LoadJsFile = function (src, async, callback, crossorigin, scriptId) {
+        var s, r = false;
+        s = document.createElement('script');
+        s.type = 'text/javascript';
+        s.src = src;
+        if (crossorigin == true) {
+            s.crossOrigin = 'anonymous';
+        }
+        if (scriptId != undefined)
+            s.id = scriptId;
+        s.async = (async != null && async != undefined) ? async : true;
+        s.onload = s.onreadystatechange = function () {
+            if (!r && (!this.readyState || this.readyState == 'complete' || this.readyState == 'loaded')) {
+                r = true;
+                callback && callback();
+            }
+        };
+        document.body.appendChild(s);
+    };
+}
+
+ECOM.getResourceFileNameForPseudoLocalization = function () {
+    if (window.ECOM.isPseudoLocalizationFileProvided) {
+        return 'ecom_' + window.ECOM.GetQueryString('env') + '.json';
+    }
+};
+
+ECOM.LoadPortalSpecificResourceJSON = function (callback, cultureCD) {
+    let resourceURL = ECOM.ContentPath;
+    if (ECOM.IsLitePortalFlow) {
+        resourceURL = resourceURL + 'lclite/resources/';
+    }
+    else {
+        resourceURL = resourceURL + ECOM.HostName + '/';
+    }
+    let resourceFileName = window.ECOM.usePseudoLocalization ?
+        window.ECOM.getResourceFileNameForPseudoLocalization() : 'localizedText';
+
+    if (!resourceFileName) {
+        resourceFileName = 'localizedText';
+    }
+    if (ECOM.IsLitePortalFlow && !window.ECOM.usePseudoLocalization) {
+        resourceFileName = resourceFileName + '_' + cultureCD;
+    }
+    if (window.ECOM.usePseudoLocalization && window.ECOM.isPseudoLocalizationFileProvided) {
+        loadJsonFile(window.ECOM.pseudoLocalResourcePathPath + resourceFileName, callback, false, function () {
+            resourceURL = resourceURL + 'localizedText' + ECOM.CurrentBuildVersion.replace('.js', '.json');
+            loadJsonFile(resourceURL, callback, false);
+        });
+    }
+    else {
+        resourceURL = resourceURL + resourceFileName + ECOM.CurrentBuildVersion.replace('.js', '.json');
+        loadJsonFile(resourceURL, callback, false);
+    }
+};
+
+ECOM.LoadCommonResourceJSON = function () {
+    // We will load a single resource file for pseudolocalization
+    if (!window.ECOM.usePseudoLocalization) {
+        let configUrl = ECOM.ContentPath + 'common/localizedText' + ECOM.CurrentBuildVersion.replace('.js', '.json');
+        loadJsonFile(configUrl, setLocalizedData, false);
+    }
+};
+
+function loadJsonFile(fileUrl, callback, isAsync, errorCallBack) {
+    if (window.$ != undefined && window.$ != null) {
+        window.$.ajax({
+            url: fileUrl,
+            method: 'GET',
+            async: isAsync,
+            cache: true,
+            dataType: 'json',
+            success: function (data) {
+                callback(data);
+            },
+            error: function () {
+                if (errorCallBack) {
+                    errorCallBack();
+                }
+            }
+        });
+    }
+    else {
+        var xmlhttp = new XMLHttpRequest();
+        xmlhttp.onreadystatechange = function () {
+            if (xmlhttp.readyState == XMLHttpRequest.DONE) {
+                if (xmlhttp.status == 200) {
+                    var data = JSON.parse(xmlhttp.responseText);
+                    callback(data);
+                }
+                else if (xmlhttp.status == 400) {
+                    console.error('There was an error 400 while fetching json file ');
+                }
+                else {
+                    console.error('something else other than 200 was returned while fetching json file');
+                }
+            }
+        };
+        xmlhttp.open('GET', fileUrl, true);
+        xmlhttp.send();
+    }
+}
+
+function handlePostPageLoad() {
+    // Loading Experiment SPA JS URL
+    loadExperimentSPAJs();
+
+    if (ECOM.UserConsent && !ECOM.skipLoadingThirdPartyScripts) {
+        setIntegrationsForCommonSegment();
+        // Directly load third party JS if Consent JS is not configured
+        if (!ECOM.Config.ConsentJS_Settings) {
+            ECOM.LoadThirdPartyScripts();
+        }
+    }
+}
+
+var setECOMData = function (data) {
+    ECOM.jobsearchWidgetSettings = data.jobsearchWidgetSettings;
+    ECOM.Links = Object.assign(ECOM.Links, data.links);
+    ECOM.Config = Object.assign(ECOM.Config, data.config);
+    if (ECOM.Config == null || ECOM.Config == undefined)
+        ECOM.Config = {};
+    ECOM.gaKey = data.gaKey;
+    ECOM.ga4Key = data.ga4Key;
+    ECOM.captchaSitekey = data.captchaSitekey;
+    if (ECOM.environment == 'local') {
+        ECOM.Paths.BaseApiUrl = ECOM.Config.BaseApiUrl;
+    }
+    else {
+        ECOM.Paths.BaseApiUrl = window.location.origin +
+      ECOM.CountryCultureSlugPrefix + '/ecom/api/v1/';
+    }
+    if (ECOM.environment == 'local') {
+        ECOM.Paths.BaseEBApiUrl = ECOM.Config.BaseEBApiUrl;
+    }
+    else {
+        ECOM.Paths.BaseEBApiUrl = window.location.origin + '/eb/api/v1/';
+    }
+    ECOM.IsINTL = ECOM.Config.isIntl;
+    if (ECOM.IsINTL) {
+        ECOM.UserConsent = data.checkUserConsent;
+    }
+    else {
+        ECOM.UserConsent = !data.checkUserConsent;
+    }
+    if (!ECOM.UserConsent) {
+        ECOM.UserConsent = document.cookie.search(/consent=1/) > -1;
+    }
+    ECOM.UseFreshChat = data.USE_FRESHCHAT;
+    handlePostPageLoad();
+};
+
+var setLocalizedData = function (data) {
+    ECOM.LocalizedText = Object.assign(ECOM.LocalizedText, data.localizedtext);
+    ECOM.LocalizedURL = Object.assign(ECOM.LocalizedURL, data.localizedURL);
+    ECOM.RedirectionURL = Object.assign(ECOM.RedirectionURL, data.redirectionURL);
+    ECOM.Config = Object.assign(ECOM.Config, data.config);
+    ECOM.Links = Object.assign(ECOM.Links, data.links);
+    if (ECOM.Config == null || ECOM.Config == undefined)
+        ECOM.Config = {};
+};
+
+ECOM.deleteCookie = function (name) {
+    var d = new Date();
+    d.setTime(d.getTime() - 1);
+    var domain = window.location.host.substr(window.location.host.indexOf('.'));
+    var expires = 'path=/;domain=' + domain + ';expires=' + d.toUTCString();
+    document.cookie = name + '=;' + expires;
+};
+
+ECOM.GetCookieKeyValPair = function (c_name, key) {
+    var keyVal = '';
+    var c_value = ECOM.readCookie(c_name);
+    if (c_value != null && c_value.length > 0) {
+        var arrkeyval = c_value.split('#');
+        if (arrkeyval.length > 0 && arrkeyval[0].indexOf(':') != -1) {
+            for (var i in arrkeyval) {
+                if (arrkeyval[i].split(':')[0].trim().indexOf(key) != -1) {
+                    keyVal = arrkeyval[i].split(':')[1].trim();
+                    break;
+                }
+            }
+        }
+    }
+    return keyVal;
+};
+function isFetchDataFromCache() {
+    var fromcache = window.ECOM.GetQueryString('fromcache');
+    if (fromcache && fromcache.toUpperCase() === 'FALSE')
+        return false;
+    return true;
+}
+ECOM.SetPortalDetails = function () {
+    let baseAPIURL = ECOM.Paths.BaseApiUrl;
+    let cultureslug = ECOM.CountryCultureSlugPrefix.substring(1);
+    let apiURL = baseAPIURL + 'config/portal?cultureslug=' + cultureslug;
+    if (!isFetchDataFromCache()) {
+        apiURL += '?fromCache=false';
+    }
+    loadJsonFile(apiURL,
+        function (response) {
+            if (response) {
+                ECOM.CultureCD = response.culture_cd;
+                ECOM.IsLitePortalFlow = response.is_lite;
+                ECOM.LiteFlowCountrySlug = response.country_slug;
+                ECOM.UseAssetsSubdomain = response.use_assets_subdomain &&
+                ECOM.environment != 'local';
+                if(ECOM.IsLitePortalFlow) {
+                    ECOM.LoadPortalSpecificResourceJSON(setLocalizedData, response.culture_cd);
+                }
+            }
+        }, false);
+};
+
+ECOM.UpdateStaticAssetsPath = function() {
+    if(ECOM.UseAssetsSubdomain) {
+        let assetsEnvironment = ECOM.environment + '-assets';
+        if(ECOM.environment === 'www' || ECOM.environment == 'builder') {
+            assetsEnvironment='assets';
+        }
+        ECOM.ContentPath = ECOM.ContentPath.replace(
+            '/' + window.location.host.split('.')[0] + '.',
+            '/' + assetsEnvironment + '.');
+        ECOM.DomainForAssets = ECOM.DomainForAssets.replace(
+            '/' + window.location.host.split('.')[0] + '.',
+            '/' + assetsEnvironment + '.');
+    }
+};
+
+ECOM.SetPortalDetails();
+ECOM.UpdateStaticAssetsPath();
+ECOM.LoadResourceJson();
+ECOM.PortalID = Number(ECOM.Config.PortalID);
+ECOM.PortalCode = ECOM.Config.PortalCode;
+ECOM.LoadEcomJson();
+ECOM.GTMKey = ECOM.Config.GTMKey;
+ECOM.PrimaryGTM = ECOM.Config.PrimaryGTM;
+if (ECOM.IsLitePortalFlow) {
+    ECOM.Paths.BasePath = ECOM.CountryCultureSlugPrefix;
+    if (ECOM.LocalizedURL.BasePath) {
+        ECOM.Paths.BasePath = ECOM.Paths.BasePath + ECOM.LocalizedURL.BasePath;
+    }
+    else {
+        ECOM.Paths.BasePath = ECOM.Paths.BasePath + ECOM.Config.BasePath;
+    }
+}
+else {
+    ECOM.Paths.BasePath = ECOM.Config.BasePath;
+}
+ECOM.PortalName = ECOM.Config.portalName;
+ECOM.documentTitle = ECOM.Config.portalName;
+if (!ECOM.IsLitePortalFlow)
+    ECOM.CultureCD = ECOM.Config.CultureCD;
+
+function UpdateRedirectionLinks() {
+    if (ECOM.Links) {
+        var prefixForURLs = ECOM.CountryCultureSlugPrefix;
+        ECOM.Links.termsOfUse = prefixForURLs + ECOM.Links.termsOfUse;
+        ECOM.Links.privacyPolicy = prefixForURLs + ECOM.Links.privacyPolicy;
+        ECOM.Links.contactUs = prefixForURLs + ECOM.Links.contactUs;
+        ECOM.Links.oopsPage = prefixForURLs + ECOM.Links.oopsPage;
+        ECOM.Links.timeoutPage = prefixForURLs + ECOM.Links.timeoutPage;
+        ECOM.Links.homePage = prefixForURLs + ECOM.Links.homePage;
+        ECOM.LocalizedURL.mySettings = prefixForURLs + ECOM.LocalizedURL.mySettings;
+        if (ECOM.IsLitePortalFlow ) {
+            ECOM.RedirectionURL.resumeHome = ECOM.Links.homePage;
+            ECOM.RedirectionURL.mobileDashboard = ECOM.Links.homePage;
+        }
+    }
+}
+UpdateRedirectionLinks();
+/* eslint-disable */
+
+ECOM.RemoveFromQueryString = function (sourceURL, key) {
+  var rtn = sourceURL.split('?')[0],
+    param,
+    params_arr = [],
+    queryString = (sourceURL.indexOf('?') !== -1) ? sourceURL.split('?')[1] : '';
+  if (queryString !== '') {
+    params_arr = queryString.split('&');
+    for (var i = params_arr.length - 1; i >= 0; i -= 1) {
+      param = params_arr[i].split('=')[0];
+      if (param === key) {
+        params_arr.splice(i, 1);
+      }
+    }
+    rtn = rtn + '?' + params_arr.join('&');
+  }
+  return rtn;
+};
+
+ECOM.AddOrUpdateQueryString = function (uri, key, value) {
+  var re = new RegExp('([?&])' + key + '=.*?(&|$)', 'i');
+  var separator = uri.indexOf('?') !== -1 ? '&' : '?';
+  if (uri.match(re)) {
+    return uri.replace(re, '$1' + key + '=' + value + '$2');
+  } else {
+    return uri + separator + key + '=' + value;
+  }
+};
+
+ECOM.preventKeys = function (event) {
+  if (event.which === 13) {
+    event.preventDefault();
+  }
+};
+
+ECOM.BrowserName = function () {
+  var ua = navigator.userAgent, tem,
+    M = ua.match(/(opera|chrome|safari|firefox|msie|trident(?=\/))\/?\s*(\d+)/i) || [];
+  if (/trident/i.test(M[1])) {
+    tem = /\brv[ :]+(\d+)/g.exec(ua) || [];
+    return 'IE ' + (tem[1] || '');
+  }
+  if (M[1] === 'Chrome') {
+    tem = ua.match(/\b(OPR|Edge?)\/(\d+)/);
+    if (tem != null) return tem.slice(1).join(' ').replace('OPR', 'Opera').replace('Edg ', 'Edge ');
+  }
+  M = M[2] ? [M[1], M[2]] : [navigator.appName, navigator.appVersion, '-?'];
+  if ((tem = ua.match(/version\/(\d+)/i)) != null) M.splice(1, 1, tem[1]);
+  return M[0];
+};
+
+window.onerror = function (errorMsg, url, lineNumber, column, errorObj) {
+  if (ECOM.Paths.BaseApiUrl && ECOM.Paths.BaseApiUrl != '' && ECOM.Config.ScriptErrorLoggingEnabled) {
+    var logRequest = {};
+    logRequest.CurrentURL = window.location.href;
+    logRequest.ReferrerURL = document.referrer;
+    logRequest.UserUID = ECOM.userId;
+    logRequest.PortalID = ECOM.PortalID;
+    logRequest.StackTrace = JSON.stringify(errorObj);
+    logRequest.ErrorMessage = errorMsg;
+    logRequest.MethodName = ' Script: ' + url + ' Line: ' + lineNumber + ' Column: ' + column;
+    logRequest.RawRequest = '';
+    logRequest.Comments = '';
+    logRequest.IsScriptError = true;
+    var xmlhttp = new XMLHttpRequest();
+    xmlhttp.open('POST', ECOM.Paths.BaseApiUrl + 'log', true);
+    xmlhttp.setRequestHeader('Content-type', 'application/json');
+    xmlhttp.send(JSON.stringify(logRequest));
+  }
+};
+
+ECOM.SendMixPanelLastTouchEvent = function (user) {
+  var utmCookie = '';
+  switch (ECOM.PortalID) {
+    case '13': utmCookie = 'rnck';
+      break;
+    case '14': utmCookie = 'clnck';
+      break;
+    case '19': utmCookie = 'luk_utm';
+      break;
+    default:
+      if (ECOM.IsINTL)
+        utmCookie = ECOM.PortalCode + '_utm';
+  }
+  utmCookie = ECOM.GetCookieKeyValPair(utmCookie, 'utmParameters');
+  if (utmCookie) {
+    var mixPanelProp = JSON.parse(utmCookie.replace(/=/g, ':'));
+    var traits = {};
+    traits['email'] = user.EmailAddress;
+    traits['userId'] = user.UserUID;
+    traits['Save UTM Campaign Last Touch'] = mixPanelProp.utm_campaign ? mixPanelProp.utm_campaign : 'undefined';
+    traits['Save UTM Content Last Touch'] = mixPanelProp.utm_content ? mixPanelProp.utm_content : 'undefined';
+    traits['Save UTM Medium Last Touch'] = mixPanelProp.utm_medium ? mixPanelProp.utm_medium : 'undefined';
+    traits['Save UTM Source Last Touch'] = mixPanelProp.utm_source ? mixPanelProp.utm_source : 'undefined';
+    traits['Save UTM Term Last Touch'] = mixPanelProp.utm_term ? mixPanelProp.utm_term : 'undefined';
+    window.TrackEvents('identify', traits, user.UserUID, true);
+  }
+};
+
+// Pass in the objects to merge as arguments.
+// For a deep extend, set the first argument to `true`.   
+ECOM.Extend = function () {
+  // Variables
+  var extended = {};
+  var deep = false;
+  var i = 0;
+  var length = arguments.length;
+  // Check if a deep merge
+  if (Object.prototype.toString.call(arguments[0]) === '[object Boolean]') {
+    deep = arguments[0];
+    i++;
+  }
+  // Merge the object into the extended object
+  var merge = function (obj) {
+    for (var prop in obj) {
+      if (Object.prototype.hasOwnProperty.call(obj, prop)) {
+        // If deep merge and property is an object, merge properties
+        if (deep && Object.prototype.toString.call(obj[prop]) === '[object Object]') {
+          extended[prop] = extend(true, extended[prop], obj[prop]);
+        } else {
+          extended[prop] = obj[prop];
+        }
+      }
+    }
+  };
+  // Loop through each object and conduct a merge
+  for (; i < length; i++) {
+    var obj = arguments[i];
+    merge(obj);
+  }
+  return extended;
+};
+
+ECOM.preventDefaultActions = function () {
+  event.preventDefault();
+  return false;
+};
+
+function readQSAndSetCookiesForDisabletests() {
+  var disableTestsQS = ECOM.GetQueryString('disabletests');
+  var runtestQS = ECOM.GetQueryString('runtest');
+  if (disableTestsQS != null)
+    ECOM.createCookie('disabletests', disableTestsQS, 24);
+  if (runtestQS != null)
+    ECOM.createCookie('runtest', runtestQS, 24);
+}
+
+readQSAndSetCookiesForDisabletests();
+String.prototype.toTitleCase = function () {
+  return this.replace(/(^|\s)\S/g, function (t) { return t.toUpperCase(); });
+};
+
+/* Global site tag (gtag.js) - Google Analytics  
+   loadGAScriptWithKey() - common method to add ga scripts 
+   gtag() - to push arguments
+   Add "gaKey" in config file with value e.g. "gaKey":"some value"  */
+
+function gtag() {
+  window.dataLayer.push(arguments);
+}
+
+function loadGAScriptsAndFirePageViewEvents() {
+  if ((window.ECOM.gaKey && window.ECOM.gaKey != null && window.ECOM.gaKey.length > 0)) {
+    window.ECOM.LoadJsFile(window.ECOM.Config.GAScript_URL, true, function () {
+      //fire ga page view call only when page is not intermediate
+      if (window.location.pathname.indexOf('payment/index') < 0) {
+        window.ECOM.setupAndFireGAPageView(window.ECOM.gaKey);
+      }
+    });
+  }
+  if (window.ECOM.Config.IsGa4Configured) {
+    window.ECOM.LoadJsFile(window.ECOM.Config.GA4Script_URL + "?id=" + window.ECOM.ga4Key, true, window.ECOM.FireGa4PageView());
+  }
+
+  //setup ga4 page view if portal only has ga4
+  if (!window.ECOM.gaKey && window.ECOM.Config.IsGa4Configured) {
+    window.ECOM.setupAndFireGA4PageView(window.ECOM.ga4Key);
+  }
+}
+
+ECOM.RedirectToTimeoutPage = function () {
+  console.error('in RedirectToTimeoutPage');
+  var url = ECOM.TimeoutPageURL;
+  if (ECOM.RedirectionURL && ECOM.RedirectionURL.timeoutPageURL != undefined)
+    url = ECOM.RedirectionURL.timeoutPageURL;
+  var timeoutURL = window.location.protocol + '//' + window.location.hostname + '/' + url +
+    '?targ=' + encodeURIComponent(window.location.href);
+  window.location.href = timeoutURL;
+};
+
+// Setting GA script as part of analytics scripts to be loaded in case of Consent is there
+window.consentScripts = window.consentScripts || [];
+
+//Adding GA script only for non OC pages, as GA is loaded through GTM on OC pages
+// skip loading ga script for portals where cookie-consent js is loaded through common segment 
+
+if ((window.ECOM.GetQueryString('orderid') == null ||
+  (!window.ECOM.isMobileDevice && window.location.pathname.indexOf(window.ECOM.LocalizedURL.orderconfirmation) > 0))
+  && !(ECOM.Config.ConsentJS_Settings && ECOM.Config.ConsentJS_Settings.IsLoadedFromCommonSegment)) {
+  window.consentScripts.push({
+    key: "GA", type: "analytics", url: window.ECOM.Config.GAScript_URL, callback: function () {
+      if (window.location.pathname.indexOf('payment/index') < 0) {
+        window.ECOM.setupAndFireGAPageView(window.ECOM.gaKey);
+      }
+    }
+  });
+  if (window.ECOM.Config.IsGa4Configured) {
+    window.consentScripts.push({
+      key: "GA4", type: "analytics", url: window.ECOM.Config.GA4Script_URL + "?id=" + window.ECOM.ga4Key, callback: function () {
+        if (window.location.pathname.indexOf('payment/index') < 0) {
+          window.ECOM.FireGa4PageView();
+        }
+      }
+    });
+  }
+}
+
+//Assuming that OC page is loaded if orderid is present in the query string
+if (window.ECOM.Config.vwoTrackingEnabled && window.ECOM.GetQueryString('orderid') != null) {
+  window.consentScripts.push({
+    key: "VWO", type: "analytics", url: "/payment/scripts/vwoTracking.js"
+  });
+}
+
+
+ECOM.LoadConsentJS = function () {
+  var consentJSURL = ECOM.DomainForAssets + ECOM.Config.CommonConsentJSURL;
+  if (ECOM.environment == "local")
+    consentJSURL = "https://" + window.location.hostname.replace("local-embeddedecom", "qa") + ECOM.Config.CommonConsentJSURL;
+  ECOM.LoadJsFile(consentJSURL);
+}
+
+ECOM.FireGa4PageView = function () {
+  if (window.location.pathname.indexOf('payment/index') < 0) {
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag('js', new Date());
+    gtag('config', ECOM.ga4Key);
+  }
+}
+
+
+ECOM.loadDynamicScriptFileAsync = function (n, t) {
+  return new Promise(function (i, e) {
+    try {
+      var o = document.createElement("script");
+      o.src = n, o.onload = i, o.async = null == t || null == t || t, o.onerror = function (n) { e(n, o) };
+      var r = document.getElementsByTagName("script")[0]; r.parentNode.insertBefore(o, r)
+    } catch (n) { e(n) }
+  })
+}
+
+window.ECOM.InitializeMetricsForPage = function (e, f, a) {
+  (null == a || void 0 == a) && (a = {
+    useDevJs: !1
+  }), ("" == a.commonScriptsUrl || void 0 == a.commonScriptsUrl) && (a.commonScriptsUrl = location.protocol + "//" +
+    location.host + "/blob/common"), ("" == a.clientEventsAPIUrl || void 0 == a.clientEventsAPIUrl) && (a
+      .clientEventsAPIUrl = location.protocol + "//" + location.host + "/clientevents");
+  var c = a.commonScriptsUrl + "/scripts/splashEventStream" + (!0 == a.useDevJs ? "" : ".min") + ".js?v=" + (void 0 ==
+    a.besVer ? "latest" : a.besVer),
+    d = a.commonScriptsUrl + "/scripts/splashMetrics" + (!0 == a.useDevJs ? "" : ".min") + ".js?v=" + (void 0 == a
+      .muVer ? "latest" : a.muVer),
+    b = [];
+  b.push(window.ECOM.loadDynamicScriptFileAsync(c, !0)), b.push(window.ECOM.loadDynamicScriptFileAsync(d, !0)), Promise.all(b).then(
+    function () {
+      var b = MetricsUtil.ClassInitializers.getNewConfigurationObject(a.MuCfg);
+      b.Value_PortalCD = e, b.Value_ProductCD = f, b.splashEventsUrl = c, b.useForcePushForAllEvents =
+        void 0 == a.useForcePushForAllEvents || a.useForcePushForAllEvents, b.SplashConfig.AjaxDetails
+          .eventsPostEndpointUrl = a.clientEventsAPIUrl + "/" + b.SplashConfig.AjaxDetails
+            .eventsPostEndpointUrl, MetricsUtil.initializeAsync(window, b)
+    })
+}
+
+window.ECOM.FireBrowserSpecificEvents = function (productCD) {
+  if (ECOM.Config.FireBrowserSpecificEvents) {
+    let paramsDataForBrowserSpecificEvents = ECOM.Config.ParamsDataForBrowserSpecificEvents || {};
+    window.ECOM.InitializeMetricsForPage(window.ECOM.PortalCode.toUpperCase(), productCD, paramsDataForBrowserSpecificEvents);
+  }
+}
+
+

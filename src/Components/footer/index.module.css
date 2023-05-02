@@ -1,0 +1,26 @@
+.container{
+    width: 100%;
+    height: 65vh;
+    background-color: rgb(40, 40, 40);
+    position: absolute;
+    top: 1995px;
+   
+}
+.pe{
+    width: 100%;
+    height: 50px;
+    background-color: rgb(35, 35, 35);
+    margin-top: 40px;
+    padding-left: 400px;
+    font-size: larger;
+    color: white;
+   
+}
+.spanone, .spantwo , .spanthree , .spanfour{
+    display: flex;
+    flex-direction: column;
+    gap: 30px;
+}
+a{
+    color: violet;
+}

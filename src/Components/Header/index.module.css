@@ -1,0 +1,60 @@
+*{margin: 0;
+padding: 0;
+box-sizing: border-box;
+}
+.bg{
+    width: 100%;
+    height: 85vh;
+    background-size: 100% 100%;
+   background-image: url('https://assets.nflxext.com/ffe/siteui/vlv3/862cc171-8df5-418c-886f-2aaf767ae159/032dec59-73cf-4dda-a5cb-d00905d66960/AZ-en-20230130-popsignuptwoweeks-perspective_alpha_website_large.jpg');
+   filter: brightness(60%);
+ 
+}
+.nav{
+    width: 100%;
+    height: 15vh;
+    background-color: rgb(41, 38, 38);
+    display: flex;
+}
+.hebir{
+   color: red;
+   font-family: 'Gill Sans', 'Gill Sans MT', Calibri, 'Trebuchet MS', sans-serif;
+   width: 40%;
+   height: 100%;
+   padding-left: 2px;
+   padding-top: 25px;
+   border-right: 1px solid red;
+   font-size: 40px;
+}
+.spa{
+    color: white;
+    text-align: center;
+    width: 100%;
+    height: 100%;
+    font-size: 25px;
+  text-align: center;
+  padding-top: 25px;
+}
+input{
+   text-align: center;
+   margin-left: 35%;
+   margin-top: 8%;
+   height: 10%;
+   width: 25%;
+   color: white;
+   background-color: darkred;
+   font-size: larger;
+   font-weight: bolder;
+}
+button{
+    text-align: center;
+   width: 5%;
+    height: 10%;
+    color: red;
+    margin-left: 2px;
+    font-size: larger;
+    font-weight: bold;
+}
+img{
+    border: 1px solid black ;
+}
